@@ -1,72 +1,58 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.14)
 
-project(QT6_CMake_Uart VERSION 0.1 LANGUAGES CXX)
+if(WIN32)
+    project(QT6_CMake_Uart LANGUAGES CXX)
+elseif(UNIX)
+    project(QT6_CMake_Uart)
+endif()
 
+set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebInfo" CACHE STRING "" FORCE)
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_PREFIX_PATH $ENV{QTDIR})
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Svg)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Svg)
+find_package(Qt6Core REQUIRED)
+find_package(Qt6Widgets REQUIRED)
 
-set(PROJECT_SOURCES
-        ./src/main.cpp
-        ./src/mainwindow.cpp
-        ./src/mainwindow.h
-        ./src/mainwindow.ui
+#===INCLUSION OF Project Files===#
+set(FORMS_DIR "${CMAKE_SOURCE_DIR}/forms")
+set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
+set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
+set(IMG_DIR "${CMAKE_SOURCE_DIR}/img")
+
+include_directories(${FORMS_DIR})
+include_directories(${INCLUDE_DIR})
+include_directories(${SOURCE_DIR})
+include_directories(${IMG_DIR})
+
+file(GLOB_RECURSE PROJECT_SOURCES
+    "${FORMS_DIR}/*.ui"
+    "${FORMS_DIR}/*.qrc"
+    "${INCLUDE_DIR}/*.h"
+    "${SOURCE_DIR}/*.cpp"
+    "${IMG_DIR}/*.rc"
+    "${IMG_DIR}/*.ico"
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(QT6_CMake_Uart
-        MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-        img/Uart.rc
-        img/Uart.ico
-    )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET QT6_CMake_Uart APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-else()
-    if(ANDROID)
-        add_library(QT6_CMake_Uart SHARED
-            ${PROJECT_SOURCES}
-        )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(QT6_CMake_Uart
-            ${PROJECT_SOURCES}
-        )
-    endif()
+set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<$<CONFIG:RELWITHDEBINFO>:QT_MESSAGELOGCONTEXT>)
+
+set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_AUTOUIC_SEARCH_PATHS} ${FORMS_DIR})
+
+if(WIN32)
+    add_executable(QT6_CMake_Uart WIN32 ${PROJECT_SOURCES})
+elseif(UNIX)
+    add_executable(QT6_CMake_Uart ${PROJECT_SOURCES})
 endif()
 
-target_link_libraries(QT6_CMake_Uart PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Svg)
+target_include_directories(QT6_CMake_Uart PRIVATE ${FORMS_DIR})
+target_include_directories(QT6_CMake_Uart PRIVATE ${INCLUDE_DIR})
+target_include_directories(QT6_CMake_Uart PRIVATE ${SOURCE_DIR})
+target_include_directories(QT6_CMake_Uart PRIVATE ${IMG_DIR})
 
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.QT6_CMake_Uart)
-endif()
-set_target_properties(QT6_CMake_Uart PROPERTIES
-    ${BUNDLE_ID_OPTION}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
-)
-
-include(GNUInstallDirs)
-install(TARGETS QT6_CMake_Uart
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(QT6_CMake_Uart)
-endif()
+target_link_libraries(QT6_CMake_Uart Qt6::Widgets)
